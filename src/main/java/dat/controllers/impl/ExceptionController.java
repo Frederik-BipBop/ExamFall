@@ -21,4 +21,24 @@ public class ExceptionController {
         ctx.json(new Message(500, e.getMessage()));
     }
 
+    public static void e1(Context ctx) {
+        ctx.status(404).json(new Message(404, "No content found for this request"));
+    }
+
+    public static void e2(Context ctx, String f) {
+        ctx.status(400).json(new Message(400, "Field '" + f + "' is required"));
+    }
+
+    public static void e3(Context ctx, String w) {
+        ctx.status(400).json(new Message(400, "Could not update '" + w + "'"));
+    }
+
+    public static void e4(Context ctx, String w) {
+        ctx.status(404).json(new Message(404, "Could not delete '" + w + "'"));
+    }
+
+    public static void e5(Context ctx) {
+        ctx.status(403).json(new Message(403, "Access denied, you do not have permission for this resource"));
+    }
+
 }

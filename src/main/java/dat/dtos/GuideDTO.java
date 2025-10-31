@@ -1,4 +1,4 @@
-package dtos;
+package dat.dtos;
 
 import dat.entities.Guide;
 import lombok.*;

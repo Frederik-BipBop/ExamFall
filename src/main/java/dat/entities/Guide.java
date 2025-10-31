@@ -30,4 +30,5 @@ public class Guide {
     @Builder.Default
     @OneToMany(mappedBy = "guides", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private List<Trip> trips = new ArrayList<>();
+
 }

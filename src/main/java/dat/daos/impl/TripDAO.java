@@ -3,7 +3,7 @@ package dat.daos.impl;
 import dat.daos.IDAO;
 import dat.entities.Guide;
 import dat.entities.Trip;
-import dtos.TripDTO;
+import dat.enums.TripCategory;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 
@@ -53,13 +53,23 @@ public class TripDAO implements IDAO<Trip, Long> {
                 tx.rollback();
                 return null;
             }
-            // opdater kun felter du tillader at ændre:
-            existing.setCountry(changes.getCountry());
-            existing.setName(changes.getName());
-            existing.setCategory(changes.getCountry());
+            // if statements gør her at det ikke overskriver den gamle værdi med null,
+            // hvis du ikke har lavet om på den værdi
+            if (changes.getCountry() != null)
+                existing.setCountry(changes.getCountry());
+            if (changes.getName() != null)
+                existing.setName(changes.getName());
+            if (changes.getCategory() != null)
+                existing.setCategory(changes.getCategory());
+            // bemærk: hvis du ikke vil tillade at prisen bliver sat til 0 ved null, brug Double i stedet for double i DTO’en
             existing.setPrice(changes.getPrice());
-            existing.setStart(changes.getStart());
-            existing.setEnd(changes.getEnd());
+            if (changes.getStart() != null)
+                existing.setStart(changes.getStart());
+            if (changes.getEnd() != null)
+                existing.setEnd(changes.getEnd());
+            // håndter relationen til guide — optional
+            if (changes.getGuide() != null)
+                existing.assignGuide(changes.getGuide());
             tx.commit();
             return existing;
         }
