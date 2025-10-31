@@ -1,0 +1,99 @@
+package dat.daos.impl;
+
+import dat.daos.IDAO;
+import dat.entities.Guide;
+import dat.entities.Trip;
+import dtos.TripDTO;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+
+import java.util.List;
+
+public class TripDAO implements IDAO<Trip, Long> {
+
+    private final EntityManagerFactory emf;
+
+    public TripDAO(EntityManagerFactory emf) {
+        this.emf = emf;
+    }
+
+    @Override
+    public Trip read(Long id) {
+        try (EntityManager em = emf.createEntityManager()) {
+            return em.find(Trip.class, id);
+        }
+    }
+
+    @Override
+    public List<Trip> readAll() {
+        try (var em = emf.createEntityManager()) {
+            return em.createQuery("SELECT t FROM Trip t", Trip.class)
+                    .getResultList();
+        }
+    }
+
+    @Override
+    public Trip create(Trip trip) {
+        try (EntityManager em = emf.createEntityManager()) {
+            var tx = em.getTransaction();
+            tx.begin();
+            em.persist(trip);
+            tx.commit();
+            return trip;
+        }
+    }
+
+    @Override
+    public Trip update(Long id, Trip changes) {
+        try (EntityManager em = emf.createEntityManager()) {
+            var tx = em.getTransaction();
+            tx.begin();
+            Trip existing = em.find(Trip.class, id);
+            if (existing == null) {
+                tx.rollback();
+                return null;
+            }
+            // opdater kun felter du tillader at ændre:
+            existing.setCountry(changes.getCountry());
+            existing.setName(changes.getName());
+            existing.setCategory(changes.getCountry());
+            existing.setPrice(changes.getPrice());
+            existing.setStart(changes.getStart());
+            existing.setEnd(changes.getEnd());
+            tx.commit();
+            return existing;
+        }
+    }
+
+    @Override
+    public void delete(Long id) {
+        try (EntityManager em = emf.createEntityManager()) {
+            var tx = em.getTransaction();
+            tx.begin();
+            Trip t = em.find(Trip.class, id);
+            if (t != null) em.remove(t);
+            tx.commit();
+        }
+    }
+
+    @Override
+    public boolean validatePrimaryKey(Long id) {
+        try (EntityManager em = emf.createEntityManager()) {
+            return em.find(Trip.class, id) != null;
+        }
+    }
+
+    public Trip linkGuideToTrip(Long tripId, Long guideId) {
+        try (var em = emf.createEntityManager()) {
+            var tx = em.getTransaction();
+            tx.begin();
+            Trip trip = em.find(Trip.class, tripId);
+            Guide guide = em.find(Guide.class, guideId);
+            if (trip == null || guide == null)
+                throw new IllegalArgumentException("Trip or guide not found");
+            trip.setGuide(guide);
+            tx.commit();
+            return trip;
+        }
+    }
+}
