@@ -13,7 +13,6 @@ public final class Routes {
     public EndpointGroup getRoutes() {
         LOG.info("Registering API routes...");
         return () -> {
-            path("/auth",  SecurityRoutes.getSecurityRoutes()); // skal returnere EndpointGroup
             path("/trips", TripRoutes.getRoutes());             // static metode, returnerer EndpointGroup
         }; // <- semikolon her!
     }

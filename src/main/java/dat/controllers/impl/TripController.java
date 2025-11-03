@@ -1,5 +1,7 @@
 package dat.controllers.impl;
 
+import dat.services.FetchTools;
+import dat.services.ItemService;
 import io.javalin.http.Context;
 import dat.daos.impl.TripDAO;
 import dat.daos.impl.GuideDAO;
@@ -9,14 +11,22 @@ import dat.enums.TripCategory;
 import dat.dtos.TripDTO;
 import dat.exceptions.ApiException;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
 public class TripController {
 
     private final TripDAO tripDao;
     private final GuideDAO guideDao;
+    private final ItemService itemService;
+
 
     public TripController(TripDAO tripDao, GuideDAO guideDao) {
         this.tripDao = tripDao;
         this.guideDao = guideDao;
+        this.itemService = new ItemService(new FetchTools());
+
     }
 
     // GET /trips/:id
@@ -97,6 +107,59 @@ public class TripController {
         }
         ctx.status(200).json(new TripDTO(updated));
     }
+
+    // GET /trips?category=forest  OG  /trips/category/forest
+    public void getByCategory(Context ctx) {
+        // 1) path-param hvis til stede
+        String catParam = ctx.pathParamMap().getOrDefault("category", null);
+        // 2) ellers query-param
+        if (catParam == null || catParam.isBlank()) catParam = ctx.queryParam("category");
+        if (catParam == null || catParam.isBlank()) {
+            ctx.status(200).json(tripDao.readAll().stream().map(TripDTO::new).toList());
+            return;
+        }
+        TripCategory cat;
+        try {
+            cat = TripCategory.fromValue(catParam); // håndterer case/trim i din enum
+        } catch (IllegalArgumentException ex) {
+            throw new ApiException(400, "Unknown category: " + catParam);
+        }
+        var list = tripDao.findByCategory(cat);
+        ctx.status(200).json(list.stream().map(TripDTO::new).toList());
+    }
+
+
+    // GET /trips/guides/totalprice
+    public void getGuideTotals(Context ctx) {
+        var totals = guideDao.getTotalPricePerGuide(); // returnerer List<GuidePriceDTO>
+        ctx.status(200).json(totals);
+    }
+
+
+    // GET /trips/{id}/packing  -> { "items": [...] }
+    public void getTripItems(Context ctx) {
+        long id = ctx.pathParamAsClass("id", Long.class).get();
+        Trip trip = tripDao.read(id);
+        if (trip == null) throw new ApiException(404, "Trip " + id + " not found");
+        var resp = itemService.getItems(trip.getCategory().name().toLowerCase()); // API'en forventer lower-case
+        var items = (resp == null || resp.getItems() == null) ? List.of() : List.of(resp.getItems());
+        ctx.status(200).json(Map.of("items", items));
+    }
+
+    // GET /trips/{id}/packing/weight  ->  number
+    public void getTripItemWeights(Context ctx) {
+        long id = ctx.pathParamAsClass("id", Long.class).get();
+        var trip = tripDao.read(id);
+        if (trip == null) throw new ApiException(404, "Trip " + id + " not found");
+        var resp = itemService.getItems(trip.getCategory().name().toLowerCase());
+        double grams = Arrays.stream(resp.getItems())
+                .mapToDouble(i -> i.getWeightInGrams() * Math.max(i.getQuantity(), 1))
+                .sum();
+        ctx.status(200).json(grams); // kun tallet
+    }
+
+
+
 
     /* ---------- Simple validering ---------- */
 

@@ -28,7 +28,7 @@ public class Guide {
     private int yearsOfExperience;
 
     @Builder.Default
-    @OneToMany(mappedBy = "guides", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "guide", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private List<Trip> trips = new ArrayList<>();
 
 }

@@ -1,6 +1,7 @@
 package dat.daos.impl;
 
 import dat.daos.IDAO;
+import dat.dtos.GuidePriceDTO;
 import dat.entities.Guide;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
@@ -76,6 +77,17 @@ public class GuideDAO implements IDAO<Guide, Long> {
     public boolean validatePrimaryKey(Long id) {
         try (EntityManager em = emf.createEntityManager()) {
             return em.find(Guide.class, id) != null;
+        }
+    }
+    public List<GuidePriceDTO> getTotalPricePerGuide() {
+        try (var em = emf.createEntityManager()) {
+            return em.createQuery(
+                    "SELECT new dat.dtos.GuidePriceDTO(g.id, COALESCE(SUM(t.price), 0)) " +
+                            "FROM Guide g LEFT JOIN g.trips t " +
+                            "GROUP BY g.id " +
+                            "ORDER BY g.id ASC",
+                    GuidePriceDTO.class
+            ).getResultList();
         }
     }
 }

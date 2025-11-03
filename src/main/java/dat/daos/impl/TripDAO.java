@@ -1,6 +1,8 @@
 package dat.daos.impl;
 
 import dat.daos.IDAO;
+import dat.dtos.GuidePriceDTO;
+import dat.dtos.TripDTO;
 import dat.entities.Guide;
 import dat.entities.Trip;
 import dat.enums.TripCategory;
@@ -45,7 +47,7 @@ public class TripDAO implements IDAO<Trip, Long> {
 
     @Override
     public Trip update(Long id, Trip changes) {
-        try (EntityManager em = emf.createEntityManager()) {
+        try (var em = emf.createEntityManager()) {
             var tx = em.getTransaction();
             tx.begin();
             Trip existing = em.find(Trip.class, id);
@@ -53,25 +55,20 @@ public class TripDAO implements IDAO<Trip, Long> {
                 tx.rollback();
                 return null;
             }
-            // if statements gør her at det ikke overskriver den gamle værdi med null,
-            // hvis du ikke har lavet om på den værdi
-            if (changes.getCountry() != null)
-                existing.setCountry(changes.getCountry());
-            if (changes.getName() != null)
-                existing.setName(changes.getName());
-            if (changes.getCategory() != null)
-                existing.setCategory(changes.getCategory());
-            // bemærk: hvis du ikke vil tillade at prisen bliver sat til 0 ved null, brug Double i stedet for double i DTO’en
+            // opdater felter
+            if (changes.getName() != null) existing.setName(changes.getName());
+            if (changes.getCountry() != null) existing.setCountry(changes.getCountry());
+            if (changes.getCategory() != null) existing.setCategory(changes.getCategory());
             existing.setPrice(changes.getPrice());
-            if (changes.getStart() != null)
-                existing.setStart(changes.getStart());
-            if (changes.getEnd() != null)
-                existing.setEnd(changes.getEnd());
-            // håndter relationen til guide — optional
-            if (changes.getGuide() != null)
-                existing.assignGuide(changes.getGuide());
+            if (changes.getStart() != null) existing.setStart(changes.getStart());
+            if (changes.getEnd() != null) existing.setEnd(changes.getEnd());
+            if (changes.getGuide() != null) existing.setGuide(changes.getGuide());
             tx.commit();
-            return existing;
+            // Hent igen med fetch join, så guide er initialiseret
+            return em.createQuery(
+                    "SELECT t FROM Trip t LEFT JOIN FETCH t.guide WHERE t.id = :id",
+                    Trip.class
+            ).setParameter("id", id).getSingleResult();
         }
     }
 
@@ -106,4 +103,13 @@ public class TripDAO implements IDAO<Trip, Long> {
             return trip;
         }
     }
+
+    public List<Trip> findByCategory(TripCategory category) {
+        try (var em = emf.createEntityManager()) {
+            return em.createQuery("SELECT t FROM Trip t WHERE t.category = :c", Trip.class)
+                    .setParameter("c", category)
+                    .getResultList();
+        }
+    }
+
 }
